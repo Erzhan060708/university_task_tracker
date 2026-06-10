@@ -30,7 +30,6 @@ def get_db():
 
 @app.post("/register", response_model=schemas.UserResponse, status_code=201)
 def register(user_data: schemas.UserRegister, db: Session = Depends(get_db)):
-    """Регистрация нового пользователя"""
     existing = db.query(models.User).filter(models.User.email == user_data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -49,7 +48,6 @@ def register(user_data: schemas.UserRegister, db: Session = Depends(get_db)):
 
 @app.post("/login", response_model=schemas.UserResponse)
 def login(user_cred: schemas.UserLogin, db: Session = Depends(get_db)):
-    """Вход пользователя"""
     user = db.query(models.User).filter(models.User.email == user_cred.email).first()
     if not user or user_cred.password != user.hashed_password:
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
@@ -59,14 +57,12 @@ def login(user_cred: schemas.UserLogin, db: Session = Depends(get_db)):
 
 @app.get("/tasks", response_model=List[schemas.TaskResponse])
 def get_tasks(user_id: int, db: Session = Depends(get_db)):
-    """Получить все задачи пользователя"""
     tasks = db.query(models.Task).filter(models.Task.user_id == user_id).all()
     return tasks
 
 
 @app.post("/tasks", response_model=schemas.TaskResponse, status_code=201)
 def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
-    """Создать новую задачу"""
     user = db.query(models.User).filter(models.User.id == task.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
@@ -86,7 +82,6 @@ def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
 
 @app.patch("/tasks/{task_id}", response_model=schemas.TaskResponse)
 def update_task(task_id: int, task_data: schemas.TaskUpdate, db: Session = Depends(get_db)):
-    """Обновить задачу (статус, приоритет, заголовок, описание)"""
     task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
@@ -102,7 +97,6 @@ def update_task(task_id: int, task_data: schemas.TaskUpdate, db: Session = Depen
 
 @app.delete("/tasks/{task_id}", status_code=204)
 def delete_task(task_id: int, user_id: int, db: Session = Depends(get_db)):
-    """Удалить задачу (только если она принадлежит пользователю)"""
     task = db.query(models.Task).filter(
         models.Task.id == task_id,
         models.Task.user_id == user_id
@@ -116,23 +110,19 @@ def delete_task(task_id: int, user_id: int, db: Session = Depends(get_db)):
     return
 
 
-# ========== 👇 НОВЫЙ ЭНДПОИНТ ДЛЯ ПОЛУЧЕНИЯ СПИСКА ПОЛЬЗОВАТЕЛЕЙ ==========
 @app.get("/users", response_model=List[schemas.UserResponse])
 def get_users(user_id: int, db: Session = Depends(get_db)):
     """Получить всех пользователей (только для админа)"""
-    # Проверяем, что запрашивающий пользователь - администратор
     current_user = db.query(models.User).filter(models.User.id == user_id).first()
     if not current_user or current_user.role != "Admin":
         raise HTTPException(status_code=403, detail="Доступ только для администратора")
     
     users = db.query(models.User).all()
     return users
-# ========== 👆 НОВЫЙ ЭНДПОИНТ ЗАКАНЧИВАЕТСЯ ==========
 
 
 @app.on_event("startup")
 def seed_database():
-    """Создаёт тестового администратора при первом запуске"""
     db = SessionLocal()
     try:
         if db.query(models.User).count() == 0:
