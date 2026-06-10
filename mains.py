@@ -1,9 +1,3 @@
-
-"""
-AlmaU Task Tracker — основной файл сервера FastAPI.
-Реализует CRUD для задач, настройку CORS, автоматическое создание таблиц и сидирование тестовыми данными.
-"""
-
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
