@@ -36,7 +36,7 @@ from pydantic import BaseModel
 class TaskCreate(BaseModel):
     title: str
     description: str = ""
-    priority: str = "Medium"   # Low, Medium, High
+    priority: str = "Medium"   
 
 class TaskResponse(BaseModel):
     id: int
@@ -60,10 +60,7 @@ def get_tasks(db: Session = Depends(get_db)):
 
 @app.post("/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 def create_task(task_data: TaskCreate, db: Session = Depends(get_db)):
-    """
-    Создать новую задачу.
-    Привязывает задачу к пользователю с id=1 (тестовый администратор).
-    """
+    
     user = db.query(User).filter(User.id == 1).first()
     if not user:
         default_user = User(username="admin", role="Admin")
@@ -99,10 +96,7 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
 
 @app.on_event("startup")
 def seed_database():
-    """
-    При старте приложения проверяем, есть ли записи в таблице задач.
-    Если нет, создаём тестового пользователя (если отсутствует) и несколько тестовых задач.
-    """
+
     db = SessionLocal()
     try:
         if db.query(Task).count() > 0:
