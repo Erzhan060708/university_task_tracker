@@ -53,7 +53,7 @@ def serve_frontend():
     index_path = BASE_DIR / "index.html"
     if not index_path.exists():
         raise HTTPException(status_code=404, detail="index.html табылмады")
-    return FileResponse(str(index_path))
+    return FileResponse(str(BASE_DIR / "index.html"))
 
 
 @app.post("/register", response_model=schemas.UserResponse, status_code=201)
