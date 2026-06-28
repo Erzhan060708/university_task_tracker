@@ -479,7 +479,7 @@
 </div>
 
 <script>
-    const API_BASE = 'http://127.0.0.1:8000';
+    const API_BASE = 'https://university-task-tracker.onrender.com';
     let currentUser = null;
     let tasksArray = [];
     let currentFilter = 'All';
@@ -562,8 +562,10 @@
                 const err = await resp.json();
                 throw new Error(err.detail || 'Неверные учётные данные');
             }
-            currentUser = await resp.json();
+            const data = await resp.json();
+            currentUser = data.user;
             sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+            sessionStorage.setItem('token', data.access_token);
             authBlock.classList.add('hidden');
             mainBlock.classList.remove('hidden');
             userEmailSpan.textContent = currentUser.email;
