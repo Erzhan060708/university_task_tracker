@@ -10,6 +10,9 @@ import bcrypt
 from .database import SessionLocal, engine
 from . import models, schemas
 
+from pathlib import Path
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 # Абсолютті жол — app/main.py орналасқан папкадан жоғары
 BASE_DIR = Path(__file__).resolve().parent.parent
 
