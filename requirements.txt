@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 sqlalchemy
 pydantic[email]
-passlib[bcrypt]
+bcrypt
 PyJWT
 python-dotenv
+python-multipart
