@@ -224,5 +224,4 @@ def seed_database():
         db.close()
  
  
-# ─── STATIC (ең соңында болуы керек!) ────────────────────────────────────────
 app.mount("/static", StaticFiles(directory="frontend"), name="frontend")
