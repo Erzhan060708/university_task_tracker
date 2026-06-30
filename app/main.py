@@ -27,7 +27,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
  
-# ─── Security ────────────────────────────────────────────────────────────────
 SECRET_KEY = os.getenv("SECRET_KEY", "almau-secret-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
@@ -51,7 +50,7 @@ def create_access_token(user_id: int) -> str:
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
  
  
-# ─── DB Dependency ────────────────────────────────────────────────────────────
+
 def get_db():
     db = SessionLocal()
     try:
@@ -60,13 +59,12 @@ def get_db():
         db.close()
  
  
-# ─── FRONTEND ─────────────────────────────────────────────────────────────────
+
 @app.get("/")
 def serve_frontend():
     return FileResponse("frontend/index.html")
  
  
-# ─── AUTH ─────────────────────────────────────────────────────────────────────
 @app.post("/register", response_model=schemas.UserResponse, status_code=201)
 def register(user_data: schemas.UserRegister, db: Session = Depends(get_db)):
     if db.query(models.User).filter(models.User.email == user_data.email).first():
@@ -94,7 +92,6 @@ def login(creds: schemas.UserLogin, db: Session = Depends(get_db)):
     return {"access_token": token, "token_type": "bearer", "user": user}
  
  
-# ─── TASKS ────────────────────────────────────────────────────────────────────
 @app.get("/tasks", response_model=List[schemas.TaskResponse])
 def get_tasks(user_id: int, db: Session = Depends(get_db)):
     return db.query(models.Task).filter(models.Task.user_id == user_id).all()
@@ -144,7 +141,7 @@ def delete_task(task_id: int, user_id: int, db: Session = Depends(get_db)):
     db.commit()
  
  
-# ─── USERS ────────────────────────────────────────────────────────────────────
+
 @app.get("/users", response_model=List[schemas.UserResponse])
 def get_users(user_id: int, db: Session = Depends(get_db)):
     """Барлық қызметкерлер (тек Admin)"""
@@ -154,7 +151,6 @@ def get_users(user_id: int, db: Session = Depends(get_db)):
     return db.query(models.User).all()
  
  
-# ─── DEPARTMENTS (күрделі ORM сұрау / complex JOIN) ──────────────────────────
 @app.get("/departments")
 def get_departments(db: Session = Depends(get_db)):
     """Барлық кафедраларды қайтарады"""
@@ -201,7 +197,7 @@ def get_department_users_with_tasks(dept_id: int, db: Session = Depends(get_db))
     }
  
  
-# ─── SEED ─────────────────────────────────────────────────────────────────────
+
 @app.on_event("startup")
 def seed_database():
     db = SessionLocal()
