@@ -437,7 +437,6 @@
                         <label>ОПИСАНИЕ</label>
                         <textarea id="taskDesc" rows="3" style="resize: vertical; width: 100%; border-radius: 20px; border: 1px solid var(--border-light); padding: 0.7rem;"></textarea>
                     </div>
-                    <!-- ДОБАВЛЕНО: Выбор сотрудника -->
                     <div class="input-group">
                         <label>НАЗНАЧИТЬ СОТРУДНИКУ</label>
                         <select id="assignedUserId">
@@ -570,7 +569,6 @@
             mainBlock.classList.remove('hidden');
             userEmailSpan.textContent = currentUser.email;
             applyRoleUI();
-            // Загружаем список сотрудников для админа
             if (currentUser.role === 'Admin') {
                 loadUsers();
             }
@@ -580,7 +578,7 @@
         }
     }
 
-    // ДОБАВЛЕНО: Загрузка списка сотрудников
+
     async function loadUsers() {
         if (!currentUser || currentUser.role !== 'Admin') return;
         try {
@@ -724,7 +722,7 @@
         }
     }
 
-    // ИЗМЕНЕНО: createTask теперь может назначать задачу другому сотруднику
+   
     async function createTask() {
         if (!currentUser || currentUser.role !== 'Admin') return;
         const title = document.getElementById('taskTitle').value.trim();
@@ -734,7 +732,6 @@
         }
         const description = document.getElementById('taskDesc').value.trim();
         const assignedUserId = document.getElementById('assignedUserId').value;
-        // Если выбран сотрудник — назначаем ему, иначе текущему админу
         const userId = assignedUserId ? parseInt(assignedUserId) : currentUser.id;
         
         const payload = {
@@ -752,7 +749,6 @@
             if (!resp.ok) throw new Error();
             document.getElementById('taskTitle').value = '';
             document.getElementById('taskDesc').value = '';
-            // Сбрасываем выбор сотрудника
             document.getElementById('assignedUserId').value = '';
             await loadTasks();
             showMessage('✅ Задача создана!', 'success');
