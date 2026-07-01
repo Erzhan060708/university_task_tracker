@@ -1,7 +1,6 @@
 import os
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List
@@ -30,8 +29,8 @@ app.add_middleware(
 SECRET_KEY = os.getenv("SECRET_KEY", "almau-secret-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
- 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
  
  
 def hash_password(password: str) -> str:
@@ -50,7 +49,6 @@ def create_access_token(user_id: int) -> str:
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
  
  
-
 def get_db():
     db = SessionLocal()
     try:
@@ -59,17 +57,20 @@ def get_db():
         db.close()
  
  
-
 @app.get("/")
 def serve_frontend():
-    return FileResponse("frontend/index.html")
+    return FileResponse(os.path.join(BASE_DIR, "index.html"))
+ 
+ 
+@app.get("/style.css")
+def serve_css():
+    return FileResponse(os.path.join(BASE_DIR, "style.css"))
  
  
 @app.post("/register", response_model=schemas.UserResponse, status_code=201)
 def register(user_data: schemas.UserRegister, db: Session = Depends(get_db)):
     if db.query(models.User).filter(models.User.email == user_data.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
- 
     new_user = models.User(
         username=user_data.username,
         email=user_data.email,
@@ -87,13 +88,17 @@ def login(creds: schemas.UserLogin, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == creds.email).first()
     if not user or not verify_password(creds.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
- 
     token = create_access_token(user.id)
     return {"access_token": token, "token_type": "bearer", "user": user}
  
  
+# ─── TASKS ────────────────────────────────────────────────────────────────────
 @app.get("/tasks", response_model=List[schemas.TaskResponse])
 def get_tasks(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    # Admin барлық тапсырмаларды көреді, User тек өзінікін
+    if user and user.role == "Admin":
+        return db.query(models.Task).all()
     return db.query(models.Task).filter(models.Task.user_id == user_id).all()
  
  
@@ -101,7 +106,6 @@ def get_tasks(user_id: int, db: Session = Depends(get_db)):
 def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
     if not db.query(models.User).filter(models.User.id == task.user_id).first():
         raise HTTPException(status_code=404, detail="Пользователь не найден")
- 
     new_task = models.Task(
         title=task.title,
         description=task.description,
@@ -120,10 +124,8 @@ def update_task(task_id: int, task_data: schemas.TaskUpdate, db: Session = Depen
     task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
- 
     for field, value in task_data.model_dump(exclude_unset=True).items():
         setattr(task, field, value.value if hasattr(value, "value") else value)
- 
     db.commit()
     db.refresh(task)
     return task
@@ -141,10 +143,8 @@ def delete_task(task_id: int, user_id: int, db: Session = Depends(get_db)):
     db.commit()
  
  
-
 @app.get("/users", response_model=List[schemas.UserResponse])
 def get_users(user_id: int, db: Session = Depends(get_db)):
-    """Барлық қызметкерлер (тек Admin)"""
     current_user = db.query(models.User).filter(models.User.id == user_id).first()
     if not current_user or current_user.role != "Admin":
         raise HTTPException(status_code=403, detail="Доступ только для администратора")
@@ -153,23 +153,16 @@ def get_users(user_id: int, db: Session = Depends(get_db)):
  
 @app.get("/departments")
 def get_departments(db: Session = Depends(get_db)):
-    """Барлық кафедраларды қайтарады"""
     depts = db.query(models.Department).all()
     return [{"id": d.id, "name": d.name} for d in depts]
  
  
 @app.get("/departments/{dept_id}/users-with-tasks")
 def get_department_users_with_tasks(dept_id: int, db: Session = Depends(get_db)):
-    """
-    Күрделі ORM сұрауы (Week 4):
-    Кафедра → Қызметкерлер → Олардың тапсырмалары (JOIN: departments → users → tasks)
-    """
     dept = db.query(models.Department).filter(models.Department.id == dept_id).first()
     if not dept:
         raise HTTPException(status_code=404, detail="Кафедра табылмады")
- 
     users = db.query(models.User).filter(models.User.department_id == dept_id).all()
- 
     return {
         "department_id": dept.id,
         "department_name": dept.name,
@@ -182,13 +175,8 @@ def get_department_users_with_tasks(dept_id: int, db: Session = Depends(get_db))
                 "role": u.role,
                 "total_tasks": len(u.tasks),
                 "tasks": [
-                    {
-                        "id": t.id,
-                        "title": t.title,
-                        "status": t.status,
-                        "priority": t.priority,
-                        "description": t.description,
-                    }
+                    {"id": t.id, "title": t.title, "status": t.status,
+                     "priority": t.priority, "description": t.description}
                     for t in u.tasks
                 ],
             }
@@ -197,7 +185,6 @@ def get_department_users_with_tasks(dept_id: int, db: Session = Depends(get_db))
     }
  
  
-
 @app.on_event("startup")
 def seed_database():
     db = SessionLocal()
@@ -207,7 +194,6 @@ def seed_database():
             db.add(dept)
             db.commit()
             db.refresh(dept)
- 
             admin = models.User(
                 username="Али",
                 email="ali@almau.kz",
@@ -222,6 +208,3 @@ def seed_database():
         print(f"⚠️ Seed error: {e}")
     finally:
         db.close()
- 
- 
-app.mount("/static", StaticFiles(directory="frontend"), name="frontend")
